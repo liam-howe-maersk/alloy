@@ -27,10 +27,12 @@ jobs:
         run: |
           ts=$(date +%s)
           echo "::set-output name=BUILD_ID::liam-${ts}"
+      - name: Docker Setup Buildx
+        uses: docker/setup-buildx-action@v3
       - name: Build image
         id: build
         run: |
-          ALLOY_IMAGE=${{ steps.prep.outputs.BUILD_ID }} make alloy-image
+          ALLOY_IMAGE=docker.io/grafana/alloy:${{ steps.prep.outputs.BUILD_ID }} make alloy-image
       - name: Import secrets
         uses: hashicorp/vault-action@v2.4.3
         id: secrets
