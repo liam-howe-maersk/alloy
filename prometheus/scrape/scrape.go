@@ -159,6 +159,7 @@ func newScrapePool(cfg *config.ScrapeConfig, app storage.Appendable, offsetSeed 
 			cache = newScrapeCache(metrics)
 		}
 		opts.target.SetMetadataStore(cache)
+		fmt.Println("logger target", opts.target, "params", opts.target.params, "labels", opts.target.labels, "discoveredLabels", opts.target.discoveredLabels)
 		return newScrapeLoop(
 			ctx,
 			opts.scraper,
@@ -1205,6 +1206,7 @@ func newScrapeLoop(ctx context.Context,
 	skipOffsetting bool,
 	validationScheme model.ValidationScheme,
 ) *scrapeLoop {
+	fmt.Printf("newScrapeLoop: %s, logger: %v\n", target.String(), l)
 	if l == nil {
 		l = log.NewNopLogger()
 	}
@@ -1433,7 +1435,7 @@ func (sl *scrapeLoop) scrapeAndReport(last, appendTime time.Time, errc chan<- er
 	if appErr != nil {
 		app.Rollback()
 		app = sl.appender(sl.appenderCtx)
-		level.Debug(sl.l).Log("msg", "Append failed", "err", appErr)
+		level.Debug(sl.l).Log("msg", "Append failed", "err", appErr, "sl.logger", sl.l)
 		// The append failed, probably due to a parse error or sample limit.
 		// Call sl.append again with an empty scrape to trigger stale markers.
 		if _, _, _, err := sl.append(app, []byte{}, "", appendTime); err != nil {
