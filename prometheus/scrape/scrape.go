@@ -159,7 +159,7 @@ func newScrapePool(cfg *config.ScrapeConfig, app storage.Appendable, offsetSeed 
 			cache = newScrapeCache(metrics)
 		}
 		opts.target.SetMetadataStore(cache)
-		fmt.Println("logger target", opts.target, "params", opts.target.params, "labels", opts.target.labels, "discoveredLabels", opts.target.discoveredLabels)
+		fmt.Println("liam-test logger target", opts.target, "params", opts.target.params, "labels", opts.target.labels, "discoveredLabels", opts.target.discoveredLabels)
 		return newScrapeLoop(
 			ctx,
 			opts.scraper,
@@ -1206,7 +1206,7 @@ func newScrapeLoop(ctx context.Context,
 	skipOffsetting bool,
 	validationScheme model.ValidationScheme,
 ) *scrapeLoop {
-	fmt.Printf("newScrapeLoop: %s, logger: %v\n", target.String(), l)
+	fmt.Printf("liam-test newScrapeLoop: %s, logger: %v\n", target.String(), l)
 	if l == nil {
 		l = log.NewNopLogger()
 	}
@@ -1260,6 +1260,7 @@ func newScrapeLoop(ctx context.Context,
 		validationScheme:               validationScheme,
 	}
 	sl.ctx, sl.cancel = context.WithCancel(ctx)
+	fmt.Printf("liam-test created sl: %s, logger: %v\n", target.String(), sl.l)
 
 	return sl
 }
@@ -1288,6 +1289,7 @@ func (sl *scrapeLoop) run(errc chan<- error) {
 
 	alignedScrapeTime := time.Now().Round(0)
 	ticker := time.NewTicker(sl.interval)
+	fmt.Printf("liam-test scrapeLoop.run: %s, logger: %v\n", sl.scraper, sl.l)
 	defer ticker.Stop()
 
 mainLoop:
@@ -1435,7 +1437,7 @@ func (sl *scrapeLoop) scrapeAndReport(last, appendTime time.Time, errc chan<- er
 	if appErr != nil {
 		app.Rollback()
 		app = sl.appender(sl.appenderCtx)
-		level.Debug(sl.l).Log("msg", "Append failed", "err", appErr, "sl.logger", sl.l)
+		level.Debug(sl.l).Log("msg", "Append failed", "err", appErr, "sl.logger", fmt.Sprintf("%v", sl.l))
 		// The append failed, probably due to a parse error or sample limit.
 		// Call sl.append again with an empty scrape to trigger stale markers.
 		if _, _, _, err := sl.append(app, []byte{}, "", appendTime); err != nil {
