@@ -22,6 +22,8 @@ WORKDIR /src/alloy
 RUN --mount=type=cache,target=/src/alloy/web/ui/node_modules,sharing=locked \
    make generate-ui
 
+RUN go mod download -x
+
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     GOOS=$TARGETOS GOARCH=$TARGETARCH GOARM=${TARGETVARIANT#v} \

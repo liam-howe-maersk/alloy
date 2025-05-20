@@ -1,0 +1,59 @@
+name: build-alloy
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: build
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@v3
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          swap-storage: true
+      - name: Generate build ID
+        id: prep
+        run: |
+          ts=$(date +%s)
+          echo "::set-output name=BUILD_ID::liam-${ts}"
+      - name: Docker Setup Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build image
+        id: build
+        run: |
+          ALLOY_IMAGE=docker.io/grafana/alloy:${{ steps.prep.outputs.BUILD_ID }} make alloy-image
+      - name: Import secrets
+        uses: hashicorp/vault-action@v2.4.3
+        id: secrets
+        with:
+          url: https://vault.maersk-digital.net
+          tlsSkipVerify: false
+          exportEnv: false
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: |
+            telemetry-kv/data/readable/harbor/mop-write-user PASSWORD;
+            telemetry-kv/data/readable/harbor/mop-write-user USERNAME;
+      - name: Login to Maersk Harbor
+        uses: docker/login-action@v3.0.0
+        with:
+          registry: harbor.maersk.io
+          username: ${{ steps.secrets.outputs.USERNAME }}
+          password: ${{ steps.secrets.outputs.PASSWORD }}
+      - name: Build Harbor image
+        id: build-harbor
+        run: |
+          docker tag docker.io/grafana/alloy:${{ steps.prep.outputs.BUILD_ID }} harbor.maersk.io/mop/alloy:${{ steps.prep.outputs.BUILD_ID }}
+          docker push harbor.maersk.io/mop/alloy:${{ steps.prep.outputs.BUILD_ID }}
