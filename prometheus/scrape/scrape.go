@@ -159,7 +159,6 @@ func newScrapePool(cfg *config.ScrapeConfig, app storage.Appendable, offsetSeed 
 			cache = newScrapeCache(metrics)
 		}
 		opts.target.SetMetadataStore(cache)
-		fmt.Println("logger target", opts.target, "params", opts.target.params, "labels", opts.target.labels, "discoveredLabels", opts.target.discoveredLabels)
 		return newScrapeLoop(
 			ctx,
 			opts.scraper,
