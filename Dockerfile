@@ -14,21 +14,11 @@ WORKDIR /src/alloy
 
 # Copy and download root module dependencies
 COPY go.mod go.sum ./
-RUN --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target=/root/.cache/go-build \
-    go mod download
-
-# Copy and download syntax module dependencies
 COPY syntax/go.mod syntax/go.sum ./syntax/
-RUN --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target=/root/.cache/go-build \
-    cd syntax && go mod download
-
-# Copy and download prometheus module dependencies
 COPY prometheus/go.mod prometheus/go.sum ./prometheus/
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    cd prometheus && go mod download
+    go mod download
 
 # Copy the rest of the source code
 COPY . .
