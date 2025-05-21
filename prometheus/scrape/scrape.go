@@ -1262,6 +1262,27 @@ func newScrapeLoop(ctx context.Context,
 	sl.ctx, sl.cancel = context.WithCancel(ctx)
 	fmt.Printf("liam-test created sl: %s, logger: %v\n", target.String(), sl.l)
 
+	// Try to access the "target" field from sl.l using reflection.
+	// This only works if sl.l is a struct or wraps a struct with a "target" field.
+	if sl.l != nil {
+		lValue := reflect.ValueOf(sl.l)
+		// If it's a pointer, get the element.
+		if lValue.Kind() == reflect.Ptr {
+			lValue = lValue.Elem()
+		}
+		// Try to get the "target" field if it exists.
+		if lValue.Kind() == reflect.Struct {
+			targetField := lValue.FieldByName("target")
+			if targetField.IsValid() {
+				fmt.Printf("liam-test sl.l.target (via reflection): %v\n", targetField.Interface())
+			} else {
+				fmt.Printf("liam-test sl.l does not have a 'target' field\n")
+			}
+		} else {
+			fmt.Printf("liam-test sl.l is not a struct, kind: %s\n", lValue.Kind())
+		}
+	}
+
 	return sl
 }
 
