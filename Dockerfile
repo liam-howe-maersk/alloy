@@ -1,9 +1,5 @@
 # syntax=docker/dockerfile:1.4
 
-# NOTE: This Dockerfile can only be built using BuildKit. BuildKit is used by
-# default when running `docker buildx build` or when DOCKER_BUILDKIT=1 is set
-# in environment variables.
-
 FROM --platform=$BUILDPLATFORM grafana/alloy-build-image:v0.1.17 as build
 ARG BUILDPLATFORM
 ARG TARGETPLATFORM
@@ -14,18 +10,26 @@ ARG RELEASE_BUILD=1
 ARG VERSION
 ARG GOEXPERIMENT
 
-COPY . /src/alloy
 WORKDIR /src/alloy
 
-# Build the UI before building Alloy, which will then bake the final UI into
-# the binary.
+# Copy and download root module dependencies
+COPY go.mod go.sum ./
+COPY syntax/go.mod syntax/go.sum ./syntax/
+COPY prometheus/go.mod prometheus/go.sum ./prometheus/
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go mod download
+
+# Copy the rest of the source code
+COPY . .
+
+# Build the UI before building Alloy
 RUN --mount=type=cache,target=/src/alloy/web/ui/node_modules,sharing=locked \
-   make generate-ui
+    make generate-ui
 
-RUN go mod download -x
-
-RUN --mount=type=cache,target=/root/.cache/go-build \
-    --mount=type=cache,target=/go/pkg/mod \
+# Build the Alloy binary
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
     GOOS=$TARGETOS GOARCH=$TARGETARCH GOARM=${TARGETVARIANT#v} \
     RELEASE_BUILD=${RELEASE_BUILD} VERSION=${VERSION} \
     GO_TAGS="netgo builtinassets promtail_journal_enabled" \
@@ -34,25 +38,21 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 
 FROM public.ecr.aws/ubuntu/ubuntu:noble
 
-# Username and uid for alloy user
 ARG UID=473
 ARG USERNAME="alloy"
 
 LABEL org.opencontainers.image.source="https://github.com/grafana/alloy"
 
-# Install dependencies needed at runtime.
-RUN  apt-get update \
- &&  apt-get install -qy libsystemd-dev tzdata ca-certificates \
- &&  rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+# Install runtime dependencies
+RUN apt-get update \
+ && apt-get install -qy libsystemd-dev tzdata ca-certificates \
+ && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-
+# Copy the built binary and config
 COPY --from=build --chown=$UID /src/alloy/build/alloy /bin/alloy
 COPY --chown=$UID example-config.alloy /etc/alloy/config.alloy
 
-# Create alloy user in container, but do not set it as default
-#
-# NOTE(rfratto): non-root support in Docker containers is an experimental,
-# undocumented feature; use at your own risk.
+# Create user and set permissions
 RUN groupadd --gid $UID $USERNAME
 RUN useradd -m -u $UID -g $UID $USERNAME
 
