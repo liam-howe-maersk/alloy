@@ -36,6 +36,7 @@ jobs:
           context: .
           file: Dockerfile
           push: false
+          load: true
           tags: docker.io/grafana/alloy:${{ env.BUILD_ID }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
