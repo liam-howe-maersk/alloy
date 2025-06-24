@@ -1266,24 +1266,14 @@ func newScrapeLoop(ctx context.Context,
 	// Try to access the "target" field from sl.l using reflection.
 	// This only works if sl.l is a struct or wraps a struct with a "target" field.
 	if sl.l != nil {
-		lValue := reflect.ValueOf(sl.l)
-		// If it's a pointer, get the element.
-		if lValue.Kind() == reflect.Ptr {
-			lValue = lValue.Elem()
+		t := reflect.TypeOf(sl.l)
+		if t.Kind() == reflect.Ptr {
+			t = t.Elem()
 		}
-		// Try to get the "target" field if it exists.
-		if lValue.Kind() == reflect.Struct {
-			targetField := lValue.FieldByName("target")
-			if targetField.IsValid() {
-				fmt.Printf("liam-test sl.l.target (via reflection): %v\n", targetField.Interface())
-			} else {
-				fmt.Printf("liam-test sl.l does not have an exported 'target' field\n")
-				// Unsafe access to unexported field
-				val := getUnexportedField(targetField)
-				fmt.Printf("liam-test sl.l.target (unexported, unsafe): %v\n", val)
-			}
-		} else {
-			fmt.Printf("liam-test sl.l is not a struct, kind: %s\n", lValue.Kind())
+
+		for i := 0; i < t.NumField(); i++ {
+			field := t.Field(i)
+			fmt.Printf("liam-test Field %d: %s (Exported: %v)\n", i, field.Name, field.IsExported())
 		}
 	}
 
