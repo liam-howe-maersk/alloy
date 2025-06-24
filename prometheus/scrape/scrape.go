@@ -28,6 +28,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unsafe"
 
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
@@ -1276,7 +1277,10 @@ func newScrapeLoop(ctx context.Context,
 			if targetField.IsValid() {
 				fmt.Printf("liam-test sl.l.target (via reflection): %v\n", targetField.Interface())
 			} else {
-				fmt.Printf("liam-test sl.l does not have a 'target' field\n")
+				fmt.Printf("liam-test sl.l does not have an exported 'target' field\n")
+				// Unsafe access to unexported field
+				val := getUnexportedField(targetField)
+				fmt.Printf("liam-test sl.l.target (unexported, unsafe): %v\n", val)
 			}
 		} else {
 			fmt.Printf("liam-test sl.l is not a struct, kind: %s\n", lValue.Kind())
@@ -1284,6 +1288,10 @@ func newScrapeLoop(ctx context.Context,
 	}
 
 	return sl
+}
+
+func getUnexportedField(field reflect.Value) interface{} {
+	return reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().Interface()
 }
 
 func (sl *scrapeLoop) setScrapeFailureLogger(l log.Logger) {
