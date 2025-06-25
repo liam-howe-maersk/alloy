@@ -164,7 +164,7 @@ func newScrapePool(cfg *config.ScrapeConfig, app storage.Appendable, offsetSeed 
 		return newScrapeLoop(
 			ctx,
 			opts.scraper,
-			log.With(logger, "target", opts.target),
+			log.With(logger, "target", opts.target.String()),
 			buffers,
 			func(l labels.Labels) labels.Labels {
 				return mutateSampleLabels(l, opts.target, opts.honorLabels, opts.mrc)
