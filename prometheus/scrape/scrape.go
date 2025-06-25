@@ -1278,6 +1278,15 @@ func newScrapeLoop(ctx context.Context,
 				fieldValue := reflect.ValueOf(sl.l).Elem().Field(i)
 				keyvals := reflect.NewAt(fieldValue.Type(), unsafe.Pointer(fieldValue.UnsafeAddr())).Elem().Interface()
 				fmt.Printf("liam-test keyvals: %#v\n", keyvals)
+				for i, v := range keyvals.([]interface{}) {
+					rv := reflect.ValueOf(v)
+					if rv.Kind() == reflect.Ptr && !rv.IsNil() {
+						// Print the dereferenced value
+						fmt.Printf("liam-test keyvals[%d]: %#v (dereferenced: %#v)\n", i, v, rv.Elem().Interface())
+					} else {
+						fmt.Printf("liam-test keyvals[%d]: %#v\n", i, v)
+					}
+				}
 			}
 		}
 	}
