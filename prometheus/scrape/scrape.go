@@ -1274,14 +1274,15 @@ func newScrapeLoop(ctx context.Context,
 		for i := 0; i < t.NumField(); i++ {
 			field := t.Field(i)
 			fmt.Printf("liam-test Field %d: %s (Exported: %v)\n", i, field.Name, field.IsExported())
+			if field.Name == "keyvals" {
+				fieldValue := reflect.ValueOf(sl.l).Elem().Field(i)
+				keyvals := reflect.NewAt(fieldValue.Type(), unsafe.Pointer(fieldValue.UnsafeAddr())).Elem().Interface()
+				fmt.Printf("liam-test keyvals: %#v\n", keyvals)
+			}
 		}
 	}
 
 	return sl
-}
-
-func getUnexportedField(field reflect.Value) interface{} {
-	return reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().Interface()
 }
 
 func (sl *scrapeLoop) setScrapeFailureLogger(l log.Logger) {
